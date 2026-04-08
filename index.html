@@ -177,12 +177,12 @@ const NodeCard = ({node, onEdit, onAddChild, onAddParent, onDelete, onToggleActi
   );
 };
 
-const OrgTree = ({node, theme, ...h}) => {
+const OrgTree = ({node, theme, isRoot=false, ...h}) => {
   const t = THEMES[theme];
   const cc = node.active?t.connector:t.connectorOff;
   return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
-      <NodeCard node={node} theme={theme} {...h} />
+      <NodeCard node={node} theme={theme} isRoot={isRoot} {...h} />
       {node.children.length>0 && (<>
         <div style={{width:"1.5px",height:"18px",background:cc}} />
         <div style={{display:"flex",position:"relative"}}>
