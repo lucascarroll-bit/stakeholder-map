@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stakeholder Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; }
+  @media print {
+    @page { size: landscape; margin: 12mm 10mm; }
+    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: #fff !important; }
+    .no-print { display: none !important; }
+    .print-show { display: block !important; }
+    .chart-canvas { overflow: visible !important; }
+    .chart-inner { transform: none !important; }
+    .org-card { break-inside: avoid; box-shadow: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const COUNTRIES = [
+  { code:"US", name:"United States", flag:"\u{1F1FA}\u{1F1F8}", tzs:["America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Anchorage","Pacific/Honolulu"] },
+  { code:"GB", name:"United Kingdom", flag:"\u{1F1EC}\u{1F1E7}", tzs:["Europe/London"] },
+  { code:"DE", name:"Germany", flag:"\u{1F1E9}\u{1F1EA}", tzs:["Europe/Berlin"] },
+  { code:"FR", name:"France", flag:"\u{1F1EB}\u{1F1F7}", tzs:["Europe/Paris"] },
+  { code:"ES", name:"Spain", flag:"\u{1F1EA}\u{1F1F8}", tzs:["Europe/Madrid"] },
+  { code:"IT", name:"Italy", flag:"\u{1F1EE}\u{1F1F9}", tzs:["Europe/Rome"] },
+  { code:"NL", name:"Netherlands", flag:"\u{1F1F3}\u{1F1F1}", tzs:["Europe/Amsterdam"] },
+  { code:"BE", name:"Belgium", flag:"\u{1F1E7}\u{1F1EA}", tzs:["Europe/Brussels"] },
+  { code:"CH", name:"Switzerland", flag:"\u{1F1E8}\u{1F1ED}", tzs:["Europe/Zurich"] },
+  { code:"AT", name:"Austria", flag:"\u{1F1E6}\u{1F1F9}", tzs:["Europe/Vienna"] },
+  { code:"SE", name:"Sweden", flag:"\u{1F1F8}\u{1F1EA}", tzs:["Europe/Stockholm"] },
+  { code:"NO", name:"Norway", flag:"\u{1F1F3}\u{1F1F4}", tzs:["Europe/Oslo"] },
+  { code:"DK", name:"Denmark", flag:"\u{1F1E9}\u{1F1F0}", tzs:["Europe/Copenhagen"] },
+  { code:"FI", name:"Finland", flag:"\u{1F1EB}\u{1F1EE}", tzs:["Europe/Helsinki"] },
+  { code:"PL", name:"Poland", flag:"\u{1F1F5}\u{1F1F1}", tzs:["Europe/Warsaw"] },
+  { code:"PT", name:"Portugal", flag:"\u{1F1F5}\u{1F1F9}", tzs:["Europe/Lisbon"] },
+  { code:"IE", name:"Ireland", flag:"\u{1F1EE}\u{1F1EA}", tzs:["Europe/Dublin"] },
+  { code:"CA", name:"Canada", flag:"\u{1F1E8}\u{1F1E6}", tzs:["America/Toronto","America/Vancouver","America/Edmonton","America/Winnipeg","America/Halifax"] },
+  { code:"MX", name:"Mexico", flag:"\u{1F1F2}\u{1F1FD}", tzs:["America/Mexico_City","America/Cancun","America/Tijuana"] },
+  { code:"BR", name:"Brazil", flag:"\u{1F1E7}\u{1F1F7}", tzs:["America/Sao_Paulo","America/Manaus"] },
+  { code:"AR", name:"Argentina", flag:"\u{1F1E6}\u{1F1F7}", tzs:["America/Argentina/Buenos_Aires"] },
+  { code:"CL", name:"Chile", flag:"\u{1F1E8}\u{1F1F1}", tzs:["America/Santiago"] },
+  { code:"CO", name:"Colombia", flag:"\u{1F1E8}\u{1F1F4}", tzs:["America/Bogota"] },
+  { code:"AU", name:"Australia", flag:"\u{1F1E6}\u{1F1FA}", tzs:["Australia/Sydney","Australia/Melbourne","Australia/Brisbane","Australia/Perth","Australia/Adelaide"] },
+  { code:"NZ", name:"New Zealand", flag:"\u{1F1F3}\u{1F1FF}", tzs:["Pacific/Auckland"] },
+  { code:"JP", name:"Japan", flag:"\u{1F1EF}\u{1F1F5}", tzs:["Asia/Tokyo"] },
+  { code:"KR", name:"South Korea", flag:"\u{1F1F0}\u{1F1F7}", tzs:["Asia/Seoul"] },
+  { code:"CN", name:"China", flag:"\u{1F1E8}\u{1F1F3}", tzs:["Asia/Shanghai"] },
+  { code:"HK", name:"Hong Kong", flag:"\u{1F1ED}\u{1F1F0}", tzs:["Asia/Hong_Kong"] },
+  { code:"SG", name:"Singapore", flag:"\u{1F1F8}\u{1F1EC}", tzs:["Asia/Singapore"] },
+  { code:"IN", name:"India", flag:"\u{1F1EE}\u{1F1F3}", tzs:["Asia/Kolkata"] },
+  { code:"AE", name:"UAE", flag:"\u{1F1E6}\u{1F1EA}", tzs:["Asia/Dubai"] },
+  { code:"SA", name:"Saudi Arabia", flag:"\u{1F1F8}\u{1F1E6}", tzs:["Asia/Riyadh"] },
+  { code:"IL", name:"Israel", flag:"\u{1F1EE}\u{1F1F1}", tzs:["Asia/Jerusalem"] },
+  { code:"TR", name:"Turkey", flag:"\u{1F1F9}\u{1F1F7}", tzs:["Europe/Istanbul"] },
+  { code:"ZA", name:"South Africa", flag:"\u{1F1FF}\u{1F1E6}", tzs:["Africa/Johannesburg"] },
+  { code:"NG", name:"Nigeria", flag:"\u{1F1F3}\u{1F1EC}", tzs:["Africa/Lagos"] },
+  { code:"KE", name:"Kenya", flag:"\u{1F1F0}\u{1F1EA}", tzs:["Africa/Nairobi"] },
+  { code:"EG", name:"Egypt", flag:"\u{1F1EA}\u{1F1EC}", tzs:["Africa/Cairo"] },
+  { code:"TH", name:"Thailand", flag:"\u{1F1F9}\u{1F1ED}", tzs:["Asia/Bangkok"] },
+  { code:"MY", name:"Malaysia", flag:"\u{1F1F2}\u{1F1FE}", tzs:["Asia/Kuala_Lumpur"] },
+  { code:"PH", name:"Philippines", flag:"\u{1F1F5}\u{1F1ED}", tzs:["Asia/Manila"] },
+  { code:"ID", name:"Indonesia", flag:"\u{1F1EE}\u{1F1E9}", tzs:["Asia/Jakarta","Asia/Makassar"] },
+  { code:"TW", name:"Taiwan", flag:"\u{1F1F9}\u{1F1FC}", tzs:["Asia/Taipei"] },
+  { code:"RU", name:"Russia", flag:"\u{1F1F7}\u{1F1FA}", tzs:["Europe/Moscow","Asia/Yekaterinburg","Asia/Novosibirsk","Asia/Vladivostok"] },
+  { code:"UA", name:"Ukraine", flag:"\u{1F1FA}\u{1F1E6}", tzs:["Europe/Kyiv"] },
+  { code:"CZ", name:"Czech Republic", flag:"\u{1F1E8}\u{1F1FF}", tzs:["Europe/Prague"] },
+  { code:"RO", name:"Romania", flag:"\u{1F1F7}\u{1F1F4}", tzs:["Europe/Bucharest"] },
+  { code:"GR", name:"Greece", flag:"\u{1F1EC}\u{1F1F7}", tzs:["Europe/Athens"] },
+];
+
+const getCountry = (code) => COUNTRIES.find(c => c.code === code);
+const tzShort = (tz) => { try { const parts = new Intl.DateTimeFormat("en-US",{timeZone:tz,timeZoneName:"short"}).formatToParts(new Date()); return parts.find(p=>p.type==="timeZoneName")?.value||tz; } catch { return tz; } };
+const tzLabel = (tz) => { try { const now = new Date(); const f = new Intl.DateTimeFormat("en-GB",{timeZone:tz,hour:"2-digit",minute:"2-digit",hour12:false}); return tzShort(tz)+" - "+tz.split("/").pop().replace(/_/g," ")+" ("+f.format(now)+")"; } catch { return tz; } };
+
+const THEMES = {
+  light: { bg:"#F8FAFC", cardBg:"#FFFFFF", cardBgOff:"#F1F5F9", headerBg:"#FFFFFF", border:"#E2E8F0", borderOff:"#E2E8F0", text:"#0F172A", textSub:"#64748B", textMuted:"#94A3B8", textOff:"#94A3B8", legendBg:"#FFFFFF", modalBg:"rgba(15,23,42,.45)", modalCard:"#FFFFFF", connector:"#D1D5DB", connectorOff:"#E5E7EB", inputBg:"#FFFFFF", inputBorder:"#E2E8F0", btnBg:"#FFFFFF", btnText:"#475569", saveBg:"#0F172A", saveText:"#FFFFFF", noteBg:"#F8FAFC" },
+  dark: { bg:"#0B1120", cardBg:"#1A2332", cardBgOff:"#111927", headerBg:"#111927", border:"#1E2D3D", borderOff:"#1A2332", text:"#E2E8F0", textSub:"#94A3B8", textMuted:"#64748B", textOff:"#475569", legendBg:"#111927", modalBg:"rgba(0,0,0,.6)", modalCard:"#1A2332", connector:"#334155", connectorOff:"#1E293B", inputBg:"#0F1A2A", inputBorder:"#1E2D3D", btnBg:"#1A2332", btnText:"#94A3B8", saveBg:"#3B82F6", saveText:"#FFFFFF", noteBg:"#111927" },
+};
+
+const BUYER_STATUSES = [
+  { value:"economic", label:"Economic Buyer", color:"#D97706", bg:"#FFFBEB", bgDark:"#352008", border:"#F59E0B", text:"#92400E", textDark:"#FCD34D", ring:"#FDE68A", ringDark:"#78350F" },
+  { value:"technical", label:"Technical Buyer", color:"#2563EB", bg:"#EFF6FF", bgDark:"#0C1B3A", border:"#3B82F6", text:"#1E40AF", textDark:"#93C5FD", ring:"#BFDBFE", ringDark:"#1E3A5F" },
+  { value:"user", label:"User Buyer", color:"#059669", bg:"#ECFDF5", bgDark:"#052E1C", border:"#10B981", text:"#065F46", textDark:"#6EE7B7", ring:"#A7F3D0", ringDark:"#064E3B" },
+  { value:"coach", label:"Coach", color:"#7C3AED", bg:"#F5F3FF", bgDark:"#1A0B3E", border:"#8B5CF6", text:"#5B21B6", textDark:"#C4B5FD", ring:"#DDD6FE", ringDark:"#2E1065" },
+  { value:"champion", label:"Champion", color:"#DC2626", bg:"#FEF2F2", bgDark:"#3B0808", border:"#EF4444", text:"#991B1B", textDark:"#FCA5A5", ring:"#FECACA", ringDark:"#450A0A" },
+  { value:"custom", label:"Custom", color:"#475569", bg:"#F8FAFC", bgDark:"#1E293B", border:"#94A3B8", text:"#334155", textDark:"#CBD5E1", ring:"#CBD5E1", ringDark:"#334155" },
+];
+
+const getC = (s) => BUYER_STATUSES.find(b => b.value === s) || BUYER_STATUSES[5];
+let _id = 3;
+const gid = () => "n_"+(_id++);
+const mkNode = (o={}) => ({ id:gid(), name:"", title:"", buyerStatus:"economic", customStatus:"", notes:"", linkedinUrl:"", photo:"", country:"", timezone:"", active:true, children:[], ...o });
+
+const INIT = {
+  id:"n_1", name:"Jane Smith", title:"VP of Operations", buyerStatus:"economic", customStatus:"", notes:"Final sign-off authority", linkedinUrl:"", photo:"", country:"US", timezone:"America/New_York", active:true,
+  children:[{ id:"n_2", name:"Tom Chen", title:"Director of Engineering", buyerStatus:"technical", customStatus:"", notes:"Evaluating technical fit", linkedinUrl:"", photo:"", country:"US", timezone:"America/Los_Angeles", active:true, children:[] }],
+};
+
+const updateNode = (t,id,u) => { if(t.id===id) return {...t,...u,children:(u.children||t.children)}; return {...t,children:t.children.map(c=>updateNode(c,id,u))}; };
+const addChild = (t,pid) => { const nn=mkNode(); if(t.id===pid) return {...t,children:[...t.children,nn]}; return {...t,children:t.children.map(c=>addChild(c,pid))}; };
+const addParent = (t,nid) => { if(t.id===nid) return mkNode({children:[t]}); return {...t,children:t.children.map(ch=>ch.id===nid?mkNode({children:[ch]}):addParent(ch,nid))}; };
+const delNode = (t,nid) => { if(t.id===nid) return t.children.length>0?{...t.children[0],children:[...t.children[0].children,...t.children.slice(1)]}:null; return {...t,children:t.children.flatMap(c=>c.id===nid?c.children:[delNode(c,nid)].filter(Boolean))}; };
+const toggleActive = (t,nid) => { if(t.id===nid) return {...t,active:!t.active}; return {...t,children:t.children.map(c=>toggleActive(c,nid))}; };
+
+const resizeImg = (file) => new Promise((res) => {
+  const r = new FileReader();
+  r.onload = (e) => { const img = new Image(); img.onload = () => { const c = document.createElement("canvas"); const s = Math.min(80/img.width,80/img.height,1); c.width=img.width*s; c.height=img.height*s; c.getContext("2d").drawImage(img,0,0,c.width,c.height); res(c.toDataURL("image/jpeg",0.8)); }; img.src = e.target.result; };
+  r.readAsDataURL(file);
+});
+
+const NodeCard = ({node, onEdit, onAddChild, onAddParent, onDelete, onToggleActive, isRoot, theme}) => {
+  const [notesOpen, setNotesOpen] = useState(false);
+  const cfg = getC(node.buyerStatus);
+  const t = THEMES[theme];
+  const dk = theme==="dark";
+  const off = !node.active;
+  const country = getCountry(node.country);
+  const statusBg = dk?(off?t.cardBgOff:cfg.bgDark):(off?t.cardBgOff:cfg.bg);
+  const statusText = dk?(off?t.textOff:cfg.textDark):(off?t.textOff:cfg.text);
+  const statusRing = dk?cfg.ringDark:cfg.ring;
+  const avatarBg = node.photo?("url("+node.photo+") center/cover"):(off?(dk?"#1E293B":"#E2E8F0"):(dk?cfg.bgDark:cfg.bg));
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <button onClick={()=>onAddParent(node.id)} className="no-print" title="Add manager above"
+        style={{width:"22px",height:"22px",borderRadius:"50%",border:"1.5px dashed "+t.textMuted,background:t.cardBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:"5px",fontSize:"13px",color:t.textMuted,lineHeight:1}}>+</button>
+      <div className="org-card" style={{background:off?t.cardBgOff:t.cardBg,border:"1.5px solid "+(off?t.borderOff:(dk?statusRing:cfg.ring)),borderLeftWidth:"4px",borderLeftColor:off?(dk?"#334155":"#CBD5E1"):cfg.border,borderRadius:"10px",width:"220px",opacity:off?0.5:1,boxShadow:off?"none":(dk?"0 2px 8px rgba(0,0,0,.3)":"0 1px 4px "+cfg.border+"18, 0 1px 2px rgba(0,0,0,.04)"),transition:"all .2s",position:"relative",overflow:"hidden"}}>
+        <div style={{height:"3px",background:off?(dk?"#334155":"#CBD5E1"):("linear-gradient(90deg,"+cfg.border+","+(dk?cfg.ringDark:cfg.ring)+")")}} />
+        <div className="no-print" style={{display:"flex",justifyContent:"flex-end",gap:"1px",padding:"3px 5px 0"}}>
+          {node.linkedinUrl && <a href={node.linkedinUrl} target="_blank" rel="noopener noreferrer" style={{width:"20px",height:"20px",display:"flex",alignItems:"center",justifyContent:"center",borderRadius:"3px",color:"#0A66C2",fontSize:"10px",textDecoration:"none",fontWeight:"800"}}>in</a>}
+          <button onClick={()=>onToggleActive(node.id)} style={{width:"20px",height:"20px",border:"none",background:"transparent",cursor:"pointer",color:node.active?t.textMuted:"#3B82F6",fontSize:"14px",display:"flex",alignItems:"center",justifyContent:"center"}}>{node.active?"\u25FB":"\u25FC"}</button>
+          <button onClick={()=>onEdit(node)} style={{width:"20px",height:"20px",border:"none",background:"transparent",cursor:"pointer",color:t.textMuted,fontSize:"11px",display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u270E"}</button>
+          {!isRoot && <button onClick={()=>onDelete(node.id)} style={{width:"20px",height:"20px",border:"none",background:"transparent",cursor:"pointer",color:t.textMuted,fontSize:"11px",display:"flex",alignItems:"center",justifyContent:"center"}}>{"\u2715"}</button>}
+        </div>
+        <div style={{padding:"0 12px 6px",display:"flex",gap:"10px",alignItems:"flex-start"}}>
+          <div style={{width:"36px",height:"36px",borderRadius:"50%",flexShrink:0,marginTop:"2px",background:avatarBg,border:"2px solid "+(off?(dk?"#334155":"#CBD5E1"):cfg.border),display:"flex",alignItems:"center",justifyContent:"center",fontSize:"14px",color:off?t.textOff:cfg.color,fontWeight:"700"}}>
+            {!node.photo && (node.name?node.name.charAt(0).toUpperCase():"?")}
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:"12.5px",fontWeight:"700",color:off?t.textOff:t.text,textDecoration:off?"line-through":"none",lineHeight:1.3,marginBottom:"1px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{node.name||"Unnamed"}</div>
+            <div style={{fontSize:"10.5px",color:off?t.textOff:t.textSub,lineHeight:1.3,marginBottom:"4px",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{node.title||"No title"}</div>
+            <span style={{display:"inline-block",padding:"1.5px 7px",borderRadius:"4px",fontSize:"9.5px",fontWeight:"700",letterSpacing:"0.4px",textTransform:"uppercase",background:statusBg,color:statusText,border:"1px solid "+(off?t.borderOff:cfg.border)+"40"}}>
+              {node.buyerStatus==="custom"?(node.customStatus||"Custom"):cfg.label}
+            </span>
+          </div>
+        </div>
+        {country && (
+          <div style={{padding:"0 12px 4px",display:"flex",alignItems:"center",gap:"4px"}}>
+            <span style={{fontSize:"13px",lineHeight:1}}>{country.flag}</span>
+            <span style={{fontSize:"9.5px",color:t.textMuted}}>{country.name}{node.timezone?(" \u00B7 "+tzShort(node.timezone)):""}</span>
+          </div>
+        )}
+        {node.notes && (
+          <div style={{padding:"0 12px 8px"}}>
+            <button onClick={()=>setNotesOpen(!notesOpen)} className="no-print" style={{border:"none",background:"none",cursor:"pointer",fontSize:"9.5px",color:t.textMuted,padding:0,display:"flex",alignItems:"center",gap:"3px"}}>
+              <span style={{transform:notesOpen?"rotate(90deg)":"none",transition:"transform .12s",display:"inline-block"}}>{"\u25B8"}</span> Notes
+            </button>
+            {notesOpen && <div style={{fontSize:"10.5px",color:t.textSub,marginTop:"3px",padding:"4px 6px",background:t.noteBg,borderRadius:"4px",lineHeight:1.4}}>{node.notes}</div>}
+            <div className="print-show" style={{display:"none",fontSize:"10.5px",color:"#64748B",marginTop:"3px",padding:"4px 6px",background:"#F8FAFC",borderRadius:"4px",lineHeight:1.4}}>{node.notes}</div>
+          </div>
+        )}
+      </div>
+      <button onClick={()=>onAddChild(node.id)} className="no-print" title="Add report below"
+        style={{width:"22px",height:"22px",borderRadius:"50%",border:"1.5px dashed "+t.textMuted,background:t.cardBg,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",marginTop:"5px",fontSize:"13px",color:t.textMuted,lineHeight:1}}>+</button>
+    </div>
+  );
+};
+
+const OrgTree = ({node, theme, isRoot=false, ...h}) => {
+  const t = THEMES[theme];
+  const cc = node.active?t.connector:t.connectorOff;
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+      <NodeCard node={node} theme={theme} isRoot={isRoot} {...h} />
+      {node.children.length>0 && (<>
+        <div style={{width:"1.5px",height:"18px",background:cc}} />
+        <div style={{display:"flex",position:"relative"}}>
+          {node.children.length>1 && <div style={{position:"absolute",top:0,left:"50%",width:"calc(100% - 220px)",height:"1.5px",background:cc,transform:"translateX(-50%)"}} />}
+          <div style={{display:"flex",gap:"12px"}}>
+            {node.children.map(ch=>(
+              <div key={ch.id} style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                <div style={{width:"1.5px",height:"18px",background:ch.active?t.connector:t.connectorOff}} />
+                <OrgTree node={ch} theme={theme} {...h} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </>)}
+    </div>
+  );
+};
+
+const EditModal = ({node, onSave, onClose, theme}) => {
+  const [f,setF] = useState({...node});
+  const nameRef = useRef(null);
+  const t = THEMES[theme];
+  const dk = theme==="dark";
+  useEffect(()=>{nameRef.current?.focus();},[]);
+
+  const handlePhoto = async (file) => {
+    if(!file||!file.type.startsWith("image/")) return;
+    const data = await resizeImg(file);
+    setF(p=>({...p, photo:data}));
+  };
+  const handlePaste = async (e) => { const items=e.clipboardData?.items; if(!items) return; for(const item of items){if(item.type.startsWith("image/")){e.preventDefault(); await handlePhoto(item.getAsFile()); return;}} };
+  const selectedCountry = getCountry(f.country);
+  const handleCountryChange = (code) => { const c=getCountry(code); setF(p=>({...p, country:code, timezone:c?.tzs[0]||""})); };
+
+  const cfg = getC(f.buyerStatus);
+  const iS = {width:"100%",padding:"7px 10px",border:"1px solid "+t.inputBorder,borderRadius:"6px",fontSize:"13px",color:t.text,background:t.inputBg,outline:"none",boxSizing:"border-box"};
+  const lS = {fontSize:"10.5px",fontWeight:"700",color:t.textSub,textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:"3px",display:"block"};
+
+  return (
+    <div style={{position:"fixed",inset:0,background:t.modalBg,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,backdropFilter:"blur(3px)"}} onClick={onClose} onPaste={handlePaste}>
+      <div style={{background:t.modalCard,borderRadius:"14px",padding:"24px",width:"380px",boxShadow:"0 24px 64px rgba(0,0,0,.25)",border:"1px solid "+t.border,maxHeight:"92vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"18px"}}>
+          <span style={{fontSize:"16px",fontWeight:"700",color:t.text}}>Edit Contact</span>
+          <button onClick={onClose} style={{border:"none",background:"none",cursor:"pointer",fontSize:"18px",color:t.textMuted}}>{"\u2715"}</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"16px"}}>
+          <div style={{width:"56px",height:"56px",borderRadius:"50%",flexShrink:0,cursor:"pointer",background:f.photo?("url("+f.photo+") center/cover"):(dk?cfg.bgDark:cfg.bg),border:"2.5px solid "+cfg.border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"20px",color:cfg.color,fontWeight:"700"}}
+            onClick={()=>document.getElementById("photo-upload")?.click()}>
+            {!f.photo && (f.name?f.name.charAt(0).toUpperCase():"?")}
+          </div>
+          <div>
+            <button onClick={()=>document.getElementById("photo-upload")?.click()} style={{fontSize:"12px",color:"#3B82F6",background:"none",border:"none",cursor:"pointer",fontWeight:"600",padding:0}}>Upload photo</button>
+            <div style={{fontSize:"10px",color:t.textMuted,marginTop:"2px"}}>or paste from clipboard</div>
+            {f.photo && <button onClick={()=>setF(p=>({...p,photo:""}))} style={{fontSize:"10px",color:"#EF4444",background:"none",border:"none",cursor:"pointer",marginTop:"2px",padding:0}}>Remove</button>}
+          </div>
+          <input id="photo-upload" type="file" accept="image/*" style={{display:"none"}} onChange={e=>e.target.files[0]&&handlePhoto(e.target.files[0])} />
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:"12px"}}>
+          <div><label style={lS}>Name</label><input ref={nameRef} style={iS} value={f.name} placeholder="Full name" onChange={e=>setF({...f,name:e.target.value})} /></div>
+          <div><label style={lS}>Title / Position</label><input style={iS} value={f.title} placeholder="e.g. VP of Engineering" onChange={e=>setF({...f,title:e.target.value})} /></div>
+          <div><label style={lS}>Buyer Status</label>
+            <select style={{...iS,cursor:"pointer"}} value={f.buyerStatus} onChange={e=>setF({...f,buyerStatus:e.target.value})}>
+              {BUYER_STATUSES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
+          {f.buyerStatus==="custom" && <div><label style={lS}>Custom Label</label><input style={iS} value={f.customStatus} placeholder="e.g. Blocker, Influencer" onChange={e=>setF({...f,customStatus:e.target.value})} /></div>}
+          <div style={{display:"flex",gap:"8px"}}>
+            <div style={{flex:1}}><label style={lS}>Country</label>
+              <select style={{...iS,cursor:"pointer"}} value={f.country} onChange={e=>handleCountryChange(e.target.value)}>
+                <option value="">Select...</option>
+                {COUNTRIES.map(c=><option key={c.code} value={c.code}>{c.flag} {c.name}</option>)}
+              </select>
+            </div>
+            <div style={{flex:1}}><label style={lS}>Timezone</label>
+              <select style={{...iS,cursor:"pointer"}} value={f.timezone} onChange={e=>setF({...f,timezone:e.target.value})} disabled={!selectedCountry}>
+                <option value="">Select...</option>
+                {selectedCountry?.tzs.map(tz=><option key={tz} value={tz}>{tzLabel(tz)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div><label style={lS}>Notes <span style={{fontWeight:"400",textTransform:"none"}}>({50-f.notes.length} left)</span></label><input style={iS} value={f.notes} maxLength={50} placeholder="Brief note..." onChange={e=>setF({...f,notes:e.target.value.slice(0,50)})} /></div>
+          <div><label style={lS}>LinkedIn URL</label><input style={iS} value={f.linkedinUrl} placeholder="https://linkedin.com/in/..." onChange={e=>setF({...f,linkedinUrl:e.target.value})} /></div>
+        </div>
+        <div style={{display:"flex",gap:"8px",marginTop:"18px",justifyContent:"flex-end"}}>
+          <button onClick={onClose} style={{padding:"8px 16px",borderRadius:"7px",border:"1px solid "+t.border,background:t.btnBg,color:t.btnText,fontSize:"13px",fontWeight:"600",cursor:"pointer"}}>Cancel</button>
+          <button onClick={()=>{onSave(f);onClose();}} style={{padding:"8px 20px",borderRadius:"7px",border:"none",background:t.saveBg,color:t.saveText,fontSize:"13px",fontWeight:"600",cursor:"pointer"}}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Legend = ({theme}) => {
+  const t = THEMES[theme]; const dk = theme==="dark";
+  return (
+    <div style={{display:"flex",flexWrap:"wrap",gap:"10px",padding:"8px 14px",background:t.legendBg,borderRadius:"8px",border:"1px solid "+t.border}}>
+      {BUYER_STATUSES.map(s=>(<div key={s.value} style={{display:"flex",alignItems:"center",gap:"4px"}}><div style={{width:"9px",height:"9px",borderRadius:"2px",background:s.border}} /><span style={{fontSize:"10.5px",color:t.textSub}}>{s.label}</span></div>))}
+      <div style={{display:"flex",alignItems:"center",gap:"4px",marginLeft:"4px",paddingLeft:"8px",borderLeft:"1px solid "+t.border}}>
+        <div style={{width:"9px",height:"9px",borderRadius:"2px",background:dk?"#334155":"#E2E8F0"}} />
+        <span style={{fontSize:"10.5px",color:t.textMuted}}>Inactive</span>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  const [tree,setTree] = useState(()=>{ try{const s=localStorage.getItem("stakeholder-map-v3");if(s){const p=JSON.parse(s);if(p?.tree?.id)return p.tree;if(p?.id)return p;}}catch{} return INIT; });
+  const [editing,setEditing] = useState(null);
+  const [toast,setToast] = useState("");
+  const [zoom,setZoom] = useState(1);
+  const [theme,setTheme] = useState(()=>{ try{const s=localStorage.getItem("stakeholder-map-v3");if(s){const p=JSON.parse(s);if(p?.theme)return p.theme;}}catch{} return "light"; });
+
+  useEffect(()=>{ try{localStorage.setItem("stakeholder-map-v3",JSON.stringify({tree,theme}));}catch{} },[tree,theme]);
+
+  const t = THEMES[theme];
+  const flash = (m)=>{setToast(m);setTimeout(()=>setToast(""),2000);};
+  const handleExport = ()=>{const b=new Blob([JSON.stringify(tree,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="stakeholder-map-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(a.href);flash("Exported");};
+  const handleImport = ()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".json";inp.onchange=(e)=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=(ev)=>{try{const d=JSON.parse(ev.target.result);if(d?.id){setTree(d);flash("Imported");}}catch{alert("Invalid JSON");}};r.readAsText(file);};inp.click();};
+
+  const btn = {padding:"5px 11px",borderRadius:"6px",border:"1px solid "+t.border,background:t.btnBg,color:t.btnText,fontSize:"11.5px",fontWeight:"600",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",whiteSpace:"nowrap"};
+
+  return (
+    <div style={{minHeight:"100vh",background:t.bg,transition:"background .3s"}}>
+      <div className="print-show" style={{display:"none",padding:"10px 20px",borderBottom:"2px solid #0F172A",background:"#fff"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}>
+          <span style={{fontSize:"18px",fontWeight:"800",color:"#0F172A"}}>Stakeholder Map</span>
+          <span style={{fontSize:"11px",color:"#64748B"}}>{new Date().toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</span>
+        </div>
+      </div>
+      <div className="no-print" style={{padding:"12px 18px",borderBottom:"1px solid "+t.border,background:t.headerBg,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:"8px",transition:"background .3s"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"9px"}}>
+          <div style={{width:"26px",height:"26px",borderRadius:"6px",background:theme==="dark"?"#3B82F6":"#0F172A",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"13px",color:"#fff",fontWeight:"800"}}>{"\u25C8"}</div>
+          <div>
+            <div style={{fontSize:"14px",fontWeight:"800",color:t.text,lineHeight:1.2}}>Stakeholder Map</div>
+            <div style={{fontSize:"10.5px",color:t.textMuted}}>Buying committee org chart</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:"5px",alignItems:"center",flexWrap:"wrap"}}>
+          {toast && <span style={{fontSize:"11px",color:"#10B981",fontWeight:"600",marginRight:"4px"}}>{toast}</span>}
+          <button style={{...btn,fontSize:"14px",padding:"4px 8px"}} onClick={()=>setTheme(p=>p==="light"?"dark":"light")} title="Toggle theme">{theme==="light"?"\u263E":"\u2600"}</button>
+          <div style={{width:"1px",height:"18px",background:t.border,margin:"0 2px"}} />
+          <button style={btn} onClick={()=>setZoom(z=>Math.max(0.4,z-0.1))}>{"\u2212"}</button>
+          <span style={{fontSize:"10.5px",color:t.textMuted,minWidth:"32px",textAlign:"center"}}>{Math.round(zoom*100)}%</span>
+          <button style={btn} onClick={()=>setZoom(z=>Math.min(1.5,z+0.1))}>+</button>
+          <div style={{width:"1px",height:"18px",background:t.border,margin:"0 2px"}} />
+          <button style={btn} onClick={()=>window.print()}><span style={{fontSize:"13px"}}>{"\u2399"}</span> PDF</button>
+          <button style={btn} onClick={handleImport}>Import</button>
+          <button style={btn} onClick={handleExport}>Export</button>
+          <button style={{...btn,color:t.textMuted}} onClick={()=>{if(confirm("Reset all contacts?"))setTree(INIT);}}>Reset</button>
+        </div>
+      </div>
+      <div style={{padding:"8px 18px"}}><Legend theme={theme} /></div>
+      <div className="chart-canvas" style={{padding:"24px 18px 60px",overflow:"auto",display:"flex",justifyContent:"center",minHeight:"calc(100vh - 130px)"}}>
+        <div className="chart-inner" style={{transform:"scale("+zoom+")",transformOrigin:"top center",transition:"transform .2s"}}>
+          <OrgTree node={tree} theme={theme} onEdit={n=>setEditing({...n})} onAddChild={id=>setTree(t=>addChild(t,id))}
+            onAddParent={id=>setTree(t=>addParent(t,id))} onDelete={id=>setTree(t=>delNode(t,id)||mkNode())}
+            onToggleActive={id=>setTree(t=>toggleActive(t,id))} isRoot={true} />
+        </div>
+      </div>
+      {editing && <EditModal node={editing} theme={theme} onSave={u=>setTree(t=>updateNode(t,u.id,u))} onClose={()=>setEditing(null)} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
